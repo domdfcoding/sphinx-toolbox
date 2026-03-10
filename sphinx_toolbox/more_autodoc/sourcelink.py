@@ -71,85 +71,85 @@ API Reference
 #  OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# stdlib
-from types import ModuleType
-from typing import Any, List, Mapping
+# # stdlib
+# from types import ModuleType
+# from typing import Any, List, Mapping
 
-# 3rd party
-import autodocsumm  # type: ignore[import-untyped]
-import sphinx.ext.autodoc
-from sphinx.application import Sphinx
+# # 3rd party
+# import autodocsumm  # type: ignore[import-untyped]
+# import sphinx.ext.autodoc
+# from sphinx.application import Sphinx
 
-# this package
-from sphinx_toolbox.more_autosummary import PatchedAutoSummModuleDocumenter
-from sphinx_toolbox.utils import SphinxExtMetadata, flag, metadata_add_version
+# # this package
+# from sphinx_toolbox.more_autosummary import PatchedAutoSummModuleDocumenter
+# from sphinx_toolbox.utils import SphinxExtMetadata, flag, metadata_add_version
 
-__all__ = ("sourcelinks_process_docstring", "setup")
-
-
-def sourcelinks_process_docstring(  # noqa: MAN001
-		app: Sphinx,
-		what,
-		name: str,
-		obj,
-		options: Mapping[str, Any],
-		lines: List[str],
-		) -> None:
-	"""
-	Process the docstring of a module and add a link to the source code if given in the configuration.
-
-	:param app: The Sphinx application.
-	:param what:
-	:param name: The name of the object being documented.
-	:param obj: The object being documented.
-	:param options: Mapping of autodoc options to values.
-	:param lines: List of strings representing the current contents of the docstring.
-	"""
-
-	show_sourcelink = options.get("sourcelink", app.config.autodoc_show_sourcelink)
-
-	if isinstance(obj, ModuleType) and what == "module" and show_sourcelink:
-		if not obj.__file__:
-			return
-		elif obj.__file__.endswith("/__init__.py"):
-			source_target = f"{name.replace('.', '/')}/__init__.py"
-		elif obj.__file__.endswith("\\__init__.py"):
-			source_target = f"{name.replace('.', '/')}/__init__.py"
-		elif obj.__file__.endswith(".py"):
-			source_target = f"{name.replace('.', '/')}.py"
-		else:
-			return
-
-		lines_to_insert = (
-				".. rst-class:: source-link",
-				'',
-				f"    **Source code:** :source:`{source_target}`",
-				'',
-				"--------------------",
-				'',
-				)
-
-		for line in reversed(lines_to_insert):  # pylint: disable=W8402
-			lines.insert(0, line)
+# __all__ = ("sourcelinks_process_docstring", "setup")
 
 
-@metadata_add_version
-def setup(app: Sphinx) -> SphinxExtMetadata:
-	"""
-	Setup :mod:`sphinx_toolbox.more_autodoc.sourcelink`.
+# def sourcelinks_process_docstring(  # noqa: MAN001
+# 		app: Sphinx,
+# 		what,
+# 		name: str,
+# 		obj,
+# 		options: Mapping[str, Any],
+# 		lines: List[str],
+# 		) -> None:
+# 	"""
+# 	Process the docstring of a module and add a link to the source code if given in the configuration.
 
-	:param app: The Sphinx application.
-	"""
+# 	:param app: The Sphinx application.
+# 	:param what:
+# 	:param name: The name of the object being documented.
+# 	:param obj: The object being documented.
+# 	:param options: Mapping of autodoc options to values.
+# 	:param lines: List of strings representing the current contents of the docstring.
+# 	"""
 
-	sphinx.ext.autodoc.ModuleDocumenter.option_spec["sourcelink"] = flag
-	autodocsumm.AutoSummModuleDocumenter.option_spec["sourcelink"] = flag
-	PatchedAutoSummModuleDocumenter.option_spec["sourcelink"] = flag
+# 	show_sourcelink = options.get("sourcelink", app.config.autodoc_show_sourcelink)
 
-	app.setup_extension("sphinx_toolbox.source")
-	app.setup_extension("sphinx_toolbox._css")
-	app.setup_extension("sphinx.ext.autodoc")
+# 	if isinstance(obj, ModuleType) and what == "module" and show_sourcelink:
+# 		if not obj.__file__:
+# 			return
+# 		elif obj.__file__.endswith("/__init__.py"):
+# 			source_target = f"{name.replace('.', '/')}/__init__.py"
+# 		elif obj.__file__.endswith("\\__init__.py"):
+# 			source_target = f"{name.replace('.', '/')}/__init__.py"
+# 		elif obj.__file__.endswith(".py"):
+# 			source_target = f"{name.replace('.', '/')}.py"
+# 		else:
+# 			return
 
-	app.connect("autodoc-process-docstring", sourcelinks_process_docstring)
-	app.add_config_value("autodoc_show_sourcelink", False, "env", [bool])
+# 		lines_to_insert = (
+# 				".. rst-class:: source-link",
+# 				'',
+# 				f"    **Source code:** :source:`{source_target}`",
+# 				'',
+# 				"--------------------",
+# 				'',
+# 				)
 
-	return {"parallel_read_safe": True}
+# 		for line in reversed(lines_to_insert):  # pylint: disable=W8402
+# 			lines.insert(0, line)
+
+
+# @metadata_add_version
+# def setup(app: Sphinx) -> SphinxExtMetadata:
+# 	"""
+# 	Setup :mod:`sphinx_toolbox.more_autodoc.sourcelink`.
+
+# 	:param app: The Sphinx application.
+# 	"""
+
+# 	sphinx.ext.autodoc.ModuleDocumenter.option_spec["sourcelink"] = flag
+# 	autodocsumm.AutoSummModuleDocumenter.option_spec["sourcelink"] = flag
+# 	PatchedAutoSummModuleDocumenter.option_spec["sourcelink"] = flag
+
+# 	app.setup_extension("sphinx_toolbox.source")
+# 	app.setup_extension("sphinx_toolbox._css")
+# 	app.setup_extension("sphinx.ext.autodoc")
+
+# 	app.connect("autodoc-process-docstring", sourcelinks_process_docstring)
+# 	app.add_config_value("autodoc_show_sourcelink", False, "env", [bool])
+
+# 	return {"parallel_read_safe": True}

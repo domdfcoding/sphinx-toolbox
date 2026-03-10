@@ -91,177 +91,177 @@ API Reference
 #  |  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# stdlib
-from contextlib import suppress
-from fractions import Fraction
-from itertools import chain
-from typing import Iterable, List, Tuple, cast
+# # stdlib
+# from contextlib import suppress
+# from fractions import Fraction
+# from itertools import chain
+# from typing import Iterable, List, Tuple, cast
 
-# 3rd party
-import docutils
-from docutils import nodes
-from docutils.statemachine import StringList
-from domdf_python_tools import stringlist
-from sphinx import addnodes
-from sphinx.application import Sphinx
-from sphinx.config import Config
-from sphinx.ext.autosummary import autosummary_table
-from sphinx.util import rst
-from sphinx.util.docutils import SphinxDirective, switch_source_input
+# # 3rd party
+# import docutils
+# from docutils import nodes
+# from docutils.statemachine import StringList
+# from domdf_python_tools import stringlist
+# from sphinx import addnodes
+# from sphinx.application import Sphinx
+# from sphinx.config import Config
+# from sphinx.ext.autosummary import autosummary_table
+# from sphinx.util import rst
+# from sphinx.util.docutils import SphinxDirective, switch_source_input
 
-# this package
-from sphinx_toolbox import latex
-from sphinx_toolbox.more_autosummary import PatchedAutosummary
-from sphinx_toolbox.utils import SphinxExtMetadata, metadata_add_version
+# # this package
+# from sphinx_toolbox import latex
+# from sphinx_toolbox.more_autosummary import PatchedAutosummary
+# from sphinx_toolbox.utils import SphinxExtMetadata, metadata_add_version
 
-__all__ = ("AutosummaryWidths", "WidthsDirective", "configure", "setup")
-
-
-class AutosummaryWidths(PatchedAutosummary):
-	"""
-	Customised :rst:dir:`autosummary` directive with customisable width with the LaTeX builder.
-
-	.. attention:: This directive ignores the :confval:`autosummary_col_type` configuration option.
-	"""
-
-	def get_table(self, items: List[Tuple[str, str, str, str]]) -> List[nodes.Node]:
-		"""
-		Generate a proper list of table nodes for autosummary:: directive.
-
-		:param items: A list produced by ``self.get_items``.
-		"""
-
-		table_spec = addnodes.tabular_col_spec()
-
-		widths = tuple(chain.from_iterable(getattr(self.state.document, "autosummary_widths", ((1, 2), (1, 2)))))
-		assert len(widths) == 4
-
-		table_spec["spec"] = r'\Xx{%d}{%d}\Xx{%d}{%d}' % widths
-
-		table = autosummary_table('')
-		classes = ["autosummary", "longtable"]
-
-		if docutils.__version_info__ >= (0, 18):
-			classes.append("colwidths-given")
-
-		real_table = nodes.table('', classes=classes)
-		table.append(real_table)
-
-		group = nodes.tgroup('', cols=2)
-		real_table.append(group)
-
-		group.append(nodes.colspec('', colwidth=10))
-		group.append(nodes.colspec('', colwidth=90))
-
-		body = nodes.tbody('')
-		group.append(body)
-
-		def append_row(*column_texts: str) -> None:
-			row = nodes.row('')
-			source, line = self.state_machine.get_source_and_line()
-
-			for text in column_texts:
-				node = nodes.paragraph('')
-				vl = StringList()
-				vl.append(text, f"{source}:{line:d}:<autosummary>")  # pylint: disable=loop-invariant-statement
-
-				with switch_source_input(self.state, vl):
-					self.state.nested_parse(vl, 0, node)
-
-					with suppress(IndexError):
-						if isinstance(node[0], nodes.paragraph):
-							node = node[0]
-
-					row.append(nodes.entry('', node))
-
-			body.append(row)
-
-		add_signature = "nosignatures" not in self.options
-		for name, sig, summary, real_name in items:
-			col1 = f":obj:`{name} <{real_name}>`"
-
-			if add_signature:
-				col1 += f"\\ {rst.escape(sig)}"
-
-			append_row(col1, summary)
-
-		return [table_spec, table]
+# __all__ = ("AutosummaryWidths", "WidthsDirective", "configure", "setup")
 
 
-class WidthsDirective(SphinxDirective):
-	"""
-	Sphinx directive which configures the column widths of an :rst:dir:`autosummary` table
-	for the remainder of the document, or until the next `autosummary-widths` directive.
-	"""  # noqa: D400
+# class AutosummaryWidths(PatchedAutosummary):
+# 	"""
+# 	Customised :rst:dir:`autosummary` directive with customisable width with the LaTeX builder.
 
-	required_arguments = 1
-	optional_arguments = 1
+# 	.. attention:: This directive ignores the :confval:`autosummary_col_type` configuration option.
+# 	"""
 
-	@staticmethod
-	def parse_widths(raw_widths: Iterable[str]) -> List[Tuple[int, int]]:
-		"""
-		Parse a width string (as a vulgar fraction) into a list of 2-element ``(numerator, denominator)`` tuples.
+# 	def get_table(self, items: List[Tuple[str, str, str, str]]) -> List[nodes.Node]:
+# 		"""
+# 		Generate a proper list of table nodes for autosummary:: directive.
 
-		For example, ``'5/10'`` becomes ``(5, 10)``.
+# 		:param items: A list produced by ``self.get_items``.
+# 		"""
 
-		:param raw_widths:
-		"""
+# 		table_spec = addnodes.tabular_col_spec()
 
-		widths = [cast(Tuple[int, int], tuple(map(int, arg.split('/')))) for arg in raw_widths]
+# 		widths = tuple(chain.from_iterable(getattr(self.state.document, "autosummary_widths", ((1, 2), (1, 2)))))
+# 		assert len(widths) == 4
 
-		if len(widths) == 1:
-			left_width = Fraction(*widths[0])
-			right_width = 1 - left_width
-			widths.append((right_width.numerator, right_width.denominator))
+# 		table_spec["spec"] = r'\Xx{%d}{%d}\Xx{%d}{%d}' % widths
 
-		return widths
+# 		table = autosummary_table('')
+# 		classes = ["autosummary", "longtable"]
 
-	def run(self) -> List:
-		"""
-		Process the directive's arguments.
-		"""
+# 		if docutils.__version_info__ >= (0, 18):
+# 			classes.append("colwidths-given")
 
-		self.state.document.autosummary_widths = self.parse_widths(self.arguments)  # type: ignore[attr-defined]
+# 		real_table = nodes.table('', classes=classes)
+# 		table.append(real_table)
 
-		return []
+# 		group = nodes.tgroup('', cols=2)
+# 		real_table.append(group)
+
+# 		group.append(nodes.colspec('', colwidth=10))
+# 		group.append(nodes.colspec('', colwidth=90))
+
+# 		body = nodes.tbody('')
+# 		group.append(body)
+
+# 		def append_row(*column_texts: str) -> None:
+# 			row = nodes.row('')
+# 			source, line = self.state_machine.get_source_and_line()
+
+# 			for text in column_texts:
+# 				node = nodes.paragraph('')
+# 				vl = StringList()
+# 				vl.append(text, f"{source}:{line:d}:<autosummary>")  # pylint: disable=loop-invariant-statement
+
+# 				with switch_source_input(self.state, vl):
+# 					self.state.nested_parse(vl, 0, node)
+
+# 					with suppress(IndexError):
+# 						if isinstance(node[0], nodes.paragraph):
+# 							node = node[0]
+
+# 					row.append(nodes.entry('', node))
+
+# 			body.append(row)
+
+# 		add_signature = "nosignatures" not in self.options
+# 		for name, sig, summary, real_name in items:
+# 			col1 = f":obj:`{name} <{real_name}>`"
+
+# 			if add_signature:
+# 				col1 += f"\\ {rst.escape(sig)}"
+
+# 			append_row(col1, summary)
+
+# 		return [table_spec, table]
 
 
-def configure(app: Sphinx, config: Config) -> None:
-	"""
-	Configure :mod:`sphinx_toolbox.more_autosummary.column_widths`.
+# class WidthsDirective(SphinxDirective):
+# 	"""
+# 	Sphinx directive which configures the column widths of an :rst:dir:`autosummary` table
+# 	for the remainder of the document, or until the next `autosummary-widths` directive.
+# 	"""  # noqa: D400
 
-	:param app: The Sphinx application.
-	:param config:
-	"""
+# 	required_arguments = 1
+# 	optional_arguments = 1
 
-	latex_elements = getattr(config, "latex_elements", {})
+# 	@staticmethod
+# 	def parse_widths(raw_widths: Iterable[str]) -> List[Tuple[int, int]]:
+# 		"""
+# 		Parse a width string (as a vulgar fraction) into a list of 2-element ``(numerator, denominator)`` tuples.
 
-	latex_preamble = stringlist.StringList(latex_elements.get("preamble", ''))
-	latex_preamble.blankline()
-	latex_preamble.append(r"\makeatletter")
-	latex_preamble.append(r"\newcolumntype{\Xx}[2]{>{\raggedright\arraybackslash}p{\dimexpr")
-	latex_preamble.append(r"    (\linewidth-\arrayrulewidth)*#1/#2-\tw@\tabcolsep-\arrayrulewidth\relax}}")
-	latex_preamble.append(r"\makeatother")
-	latex_preamble.blankline()
+# 		For example, ``'5/10'`` becomes ``(5, 10)``.
 
-	latex_elements["preamble"] = str(latex_preamble)
-	config.latex_elements = latex_elements  # type: ignore[attr-defined]
+# 		:param raw_widths:
+# 		"""
+
+# 		widths = [cast(Tuple[int, int], tuple(map(int, arg.split('/')))) for arg in raw_widths]
+
+# 		if len(widths) == 1:
+# 			left_width = Fraction(*widths[0])
+# 			right_width = 1 - left_width
+# 			widths.append((right_width.numerator, right_width.denominator))
+
+# 		return widths
+
+# 	def run(self) -> List:
+# 		"""
+# 		Process the directive's arguments.
+# 		"""
+
+# 		self.state.document.autosummary_widths = self.parse_widths(self.arguments)  # type: ignore[attr-defined]
+
+# 		return []
 
 
-@metadata_add_version
-def setup(app: Sphinx) -> SphinxExtMetadata:
-	"""
-	Setup :mod:`sphinx_toolbox.more_autosummary.column_widths`.
+# def configure(app: Sphinx, config: Config) -> None:
+# 	"""
+# 	Configure :mod:`sphinx_toolbox.more_autosummary.column_widths`.
 
-	:param app: The Sphinx application.
-	"""
+# 	:param app: The Sphinx application.
+# 	:param config:
+# 	"""
 
-	app.setup_extension("sphinx_toolbox.more_autosummary")
+# 	latex_elements = getattr(config, "latex_elements", {})
 
-	app.add_directive("autosummary", AutosummaryWidths, override=True)
-	app.add_directive("autosummary-widths", WidthsDirective)
+# 	latex_preamble = stringlist.StringList(latex_elements.get("preamble", ''))
+# 	latex_preamble.blankline()
+# 	latex_preamble.append(r"\makeatletter")
+# 	latex_preamble.append(r"\newcolumntype{\Xx}[2]{>{\raggedright\arraybackslash}p{\dimexpr")
+# 	latex_preamble.append(r"    (\linewidth-\arrayrulewidth)*#1/#2-\tw@\tabcolsep-\arrayrulewidth\relax}}")
+# 	latex_preamble.append(r"\makeatother")
+# 	latex_preamble.blankline()
 
-	app.connect("config-inited", configure)
-	app.connect("build-finished", latex.replace_unknown_unicode)
+# 	latex_elements["preamble"] = str(latex_preamble)
+# 	config.latex_elements = latex_elements  # type: ignore[attr-defined]
 
-	return {"parallel_read_safe": True}
+
+# @metadata_add_version
+# def setup(app: Sphinx) -> SphinxExtMetadata:
+# 	"""
+# 	Setup :mod:`sphinx_toolbox.more_autosummary.column_widths`.
+
+# 	:param app: The Sphinx application.
+# 	"""
+
+# 	app.setup_extension("sphinx_toolbox.more_autosummary")
+
+# 	app.add_directive("autosummary", AutosummaryWidths, override=True)
+# 	app.add_directive("autosummary-widths", WidthsDirective)
+
+# 	app.connect("config-inited", configure)
+# 	app.connect("build-finished", latex.replace_unknown_unicode)
+
+# 	return {"parallel_read_safe": True}

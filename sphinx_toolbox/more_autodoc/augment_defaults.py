@@ -65,74 +65,74 @@ This module monkeypatches in that behaviour.
 #  |  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# stdlib
-from typing import Dict, List, Type
+# # stdlib
+# from typing import Dict, List, Type
 
-# 3rd party
-import autodocsumm  # type: ignore[import-untyped]
-import sphinx.ext.autodoc.directive
-from docutils.utils import assemble_option_dict
-from sphinx.application import Sphinx
-from sphinx.errors import ExtensionError
-from sphinx.ext.autodoc import Documenter, Options
+# # 3rd party
+# import autodocsumm  # type: ignore[import-untyped]
+# import sphinx.ext.autodoc.directive
+# from docutils.utils import assemble_option_dict
+# from sphinx.application import Sphinx
+# from sphinx.errors import ExtensionError
+# from sphinx.ext.autodoc import Documenter, Options
 
-# this package
-import sphinx_toolbox
-import sphinx_toolbox.more_autosummary
-from sphinx_toolbox.utils import Config, SphinxExtMetadata
+# # this package
+# import sphinx_toolbox
+# import sphinx_toolbox.more_autosummary
+# from sphinx_toolbox.utils import Config, SphinxExtMetadata
 
-__all__ = ("process_documenter_options", "setup")
-
-
-def process_documenter_options(
-		documenter: Type[Documenter],
-		config: Config,
-		options: Dict,
-		) -> Options:
-	"""
-	Recognize options of Documenter from user input.
-
-	:param documenter:
-	:param config:
-	:param options:
-	"""
-
-	for name in sphinx.ext.autodoc.directive.AUTODOC_DEFAULT_OPTIONS:
-		if name not in documenter.option_spec:  # pragma: no cover
-			continue
-		else:
-			negated = options.pop("no-" + name, True) is None
-
-			if name in config.autodoc_default_options and not negated:
-				# pylint: disable=loop-invariant-statement
-				default_value = config.autodoc_default_options[name]
-				existing_value = options.get(name, None)
-				values: List[str] = [v for v in [default_value, existing_value] if v not in {None, True, False}]
-
-				if values:
-					options[name] = ','.join(values)
-				else:
-					options[name] = None  # pragma: no cover
-				# pylint: enable=loop-invariant-statement
-
-	return Options(assemble_option_dict(options.items(), documenter.option_spec))
+# __all__ = ("process_documenter_options", "setup")
 
 
-def setup(app: Sphinx) -> SphinxExtMetadata:
-	"""
-	Setup :mod:`sphinx_toolbox.more_autodoc.augment_defaults`.
+# def process_documenter_options(
+# 		documenter: Type[Documenter],
+# 		config: Config,
+# 		options: Dict,
+# 		) -> Options:
+# 	"""
+# 	Recognize options of Documenter from user input.
 
-	:param app: The Sphinx application.
-	"""
+# 	:param documenter:
+# 	:param config:
+# 	:param options:
+# 	"""
 
-	if "sphinx.ext.autodoc" in app.extensions:
-		msg = "'sphinx_toolbox.more_autodoc.augment_defaults' must be loaded before 'sphinx.ext.autodoc'."
-		raise ExtensionError(msg)
+# 	for name in sphinx.ext.autodoc.directive.AUTODOC_DEFAULT_OPTIONS:
+# 		if name not in documenter.option_spec:  # pragma: no cover
+# 			continue
+# 		else:
+# 			negated = options.pop("no-" + name, True) is None
 
-	sphinx.ext.autodoc.directive.process_documenter_options = process_documenter_options  # type: ignore[assignment]
-	autodocsumm.process_documenter_options = process_documenter_options
-	sphinx_toolbox.more_autosummary.process_documenter_options = process_documenter_options  # type: ignore[assignment]
+# 			if name in config.autodoc_default_options and not negated:
+# 				# pylint: disable=loop-invariant-statement
+# 				default_value = config.autodoc_default_options[name]
+# 				existing_value = options.get(name, None)
+# 				values: List[str] = [v for v in [default_value, existing_value] if v not in {None, True, False}]
 
-	app.setup_extension("sphinx.ext.autodoc")
+# 				if values:
+# 					options[name] = ','.join(values)
+# 				else:
+# 					options[name] = None  # pragma: no cover
+# 				# pylint: enable=loop-invariant-statement
 
-	return {"version": sphinx_toolbox.__version__, "parallel_read_safe": True}
+# 	return Options(assemble_option_dict(options.items(), documenter.option_spec))
+
+
+# def setup(app: Sphinx) -> SphinxExtMetadata:
+# 	"""
+# 	Setup :mod:`sphinx_toolbox.more_autodoc.augment_defaults`.
+
+# 	:param app: The Sphinx application.
+# 	"""
+
+# 	if "sphinx.ext.autodoc" in app.extensions:
+# 		msg = "'sphinx_toolbox.more_autodoc.augment_defaults' must be loaded before 'sphinx.ext.autodoc'."
+# 		raise ExtensionError(msg)
+
+# 	sphinx.ext.autodoc.directive.process_documenter_options = process_documenter_options  # type: ignore[assignment]
+# 	autodocsumm.process_documenter_options = process_documenter_options
+# 	sphinx_toolbox.more_autosummary.process_documenter_options = process_documenter_options  # type: ignore[assignment]
+
+# 	app.setup_extension("sphinx.ext.autodoc")
+
+# 	return {"version": sphinx_toolbox.__version__, "parallel_read_safe": True}

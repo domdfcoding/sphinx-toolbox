@@ -32,72 +32,72 @@ Adds the ``:no-docstring:`` option to automodule directives to exclude the docst
 #  OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# stdlib
-from types import ModuleType
-from typing import List
+# # stdlib
+# from types import ModuleType
+# from typing import List
 
-# 3rd party
-import autodocsumm  # type: ignore[import-untyped]
-import sphinx.ext.autodoc
-from sphinx.application import Sphinx
+# # 3rd party
+# import autodocsumm  # type: ignore[import-untyped]
+# import sphinx.ext.autodoc
+# from sphinx.application import Sphinx
 
-# this package
-from sphinx_toolbox.more_autosummary import PatchedAutoSummModuleDocumenter
-from sphinx_toolbox.utils import SphinxExtMetadata, flag, metadata_add_version
+# # this package
+# from sphinx_toolbox.more_autosummary import PatchedAutoSummModuleDocumenter
+# from sphinx_toolbox.utils import SphinxExtMetadata, flag, metadata_add_version
 
-__all__ = ("automodule_add_nodocstring", "no_docstring_process_docstring", "setup")
-
-
-def automodule_add_nodocstring(app: Sphinx) -> None:
-	"""
-	Add the ``:no-docstring:`` option to automodule directives.
-
-	The option is used to exclude the docstring from the output
-
-	:param app: The Sphinx application.
-	"""
-
-	sphinx.ext.autodoc.ModuleDocumenter.option_spec["no-docstring"] = flag
-	autodocsumm.AutoSummModuleDocumenter.option_spec["no-docstring"] = flag
-	PatchedAutoSummModuleDocumenter.option_spec["no-docstring"] = flag
-
-	app.setup_extension("sphinx.ext.autodoc")
-	app.connect("autodoc-process-docstring", no_docstring_process_docstring, priority=1000)
+# __all__ = ("automodule_add_nodocstring", "no_docstring_process_docstring", "setup")
 
 
-def no_docstring_process_docstring(  # noqa: MAN001
-		app: Sphinx,
-		what,
-		name: str,
-		obj,
-		options,
-		lines: List[str],
-		) -> None:
-	"""
-	Remove module docstrings if the ``:no-docstring:`` flag was set.
+# def automodule_add_nodocstring(app: Sphinx) -> None:
+# 	"""
+# 	Add the ``:no-docstring:`` option to automodule directives.
 
-	:param app: The Sphinx application.
-	:param what:
-	:param name: The name of the object being documented.
-	:param obj: The object being documented.
-	:param options: Mapping of autodoc options to values.
-	:param lines: List of strings representing the current contents of the docstring.
-	"""
+# 	The option is used to exclude the docstring from the output
 
-	if isinstance(obj, ModuleType):
-		no_docstring = options.get("no-docstring", False)
-		if no_docstring:
-			lines.clear()
+# 	:param app: The Sphinx application.
+# 	"""
+
+# 	sphinx.ext.autodoc.ModuleDocumenter.option_spec["no-docstring"] = flag
+# 	autodocsumm.AutoSummModuleDocumenter.option_spec["no-docstring"] = flag
+# 	PatchedAutoSummModuleDocumenter.option_spec["no-docstring"] = flag
+
+# 	app.setup_extension("sphinx.ext.autodoc")
+# 	app.connect("autodoc-process-docstring", no_docstring_process_docstring, priority=1000)
 
 
-@metadata_add_version
-def setup(app: Sphinx) -> SphinxExtMetadata:
-	"""
-	Setup :mod:`sphinx_toolbox.more_autodoc.no_docstring`.
+# def no_docstring_process_docstring(  # noqa: MAN001
+# 		app: Sphinx,
+# 		what,
+# 		name: str,
+# 		obj,
+# 		options,
+# 		lines: List[str],
+# 		) -> None:
+# 	"""
+# 	Remove module docstrings if the ``:no-docstring:`` flag was set.
 
-	:param app: The Sphinx application.
-	"""
+# 	:param app: The Sphinx application.
+# 	:param what:
+# 	:param name: The name of the object being documented.
+# 	:param obj: The object being documented.
+# 	:param options: Mapping of autodoc options to values.
+# 	:param lines: List of strings representing the current contents of the docstring.
+# 	"""
 
-	automodule_add_nodocstring(app)
+# 	if isinstance(obj, ModuleType):
+# 		no_docstring = options.get("no-docstring", False)
+# 		if no_docstring:
+# 			lines.clear()
 
-	return {"parallel_read_safe": True}
+
+# @metadata_add_version
+# def setup(app: Sphinx) -> SphinxExtMetadata:
+# 	"""
+# 	Setup :mod:`sphinx_toolbox.more_autodoc.no_docstring`.
+
+# 	:param app: The Sphinx application.
+# 	"""
+
+# 	automodule_add_nodocstring(app)
+
+# 	return {"parallel_read_safe": True}

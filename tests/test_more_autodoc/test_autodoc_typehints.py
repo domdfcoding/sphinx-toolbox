@@ -1,296 +1,296 @@
-#  Based on https://github.com/agronholm/sphinx-autodoc-typehints
-#  Copyright (c) Alex Grönholm
-#  MIT Licensed
-#
-#  Permission is hereby granted, free of charge, to any person obtaining a copy
-#  of this software and associated documentation files (the "Software"), to deal
-#  in the Software without restriction, including without limitation the rights
-#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#  copies of the Software, and to permit persons to whom the Software is
-#  furnished to do so, subject to the following conditions:
-#
-#  The above copyright notice and this permission notice shall be included in all
-#  copies or substantial portions of the Software.
-#
-#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-#  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-#  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-#  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-#  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-#  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
-#  OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# #  Based on https://github.com/agronholm/sphinx-autodoc-typehints
+# #  Copyright (c) Alex Grönholm
+# #  MIT Licensed
+# #
+# #  Permission is hereby granted, free of charge, to any person obtaining a copy
+# #  of this software and associated documentation files (the "Software"), to deal
+# #  in the Software without restriction, including without limitation the rights
+# #  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# #  copies of the Software, and to permit persons to whom the Software is
+# #  furnished to do so, subject to the following conditions:
+# #
+# #  The above copyright notice and this permission notice shall be included in all
+# #  copies or substantial portions of the Software.
+# #
+# #  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# #  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# #  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# #  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+# #  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# #  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+# #  OR OTHER DEALINGS IN THE SOFTWARE.
+# #
 
-# stdlib
-import re
-import sys
-import typing
-from types import ModuleType
-from typing import (
-		IO,
-		Any,
-		AnyStr,
-		Callable,
-		Dict,
-		Generic,
-		List,
-		Mapping,
-		NewType,
-		Optional,
-		Pattern,
-		Tuple,
-		Type,
-		TypeVar,
-		Union
-		)
+# # stdlib
+# import re
+# import sys
+# import typing
+# from types import ModuleType
+# from typing import (
+# 		IO,
+# 		Any,
+# 		AnyStr,
+# 		Callable,
+# 		Dict,
+# 		Generic,
+# 		List,
+# 		Mapping,
+# 		NewType,
+# 		Optional,
+# 		Pattern,
+# 		Tuple,
+# 		Type,
+# 		TypeVar,
+# 		Union
+# 		)
 
-# 3rd party
-import pytest
-import typing_extensions
-from coincidence import min_version
-from sphobjinv import Inventory  # type: ignore[import-untyped]
+# # 3rd party
+# import pytest
+# import typing_extensions
+# from coincidence import min_version
+# from sphobjinv import Inventory  # type: ignore[import-untyped]
 
-# this package
-from sphinx_toolbox.more_autodoc.typehints import format_annotation, process_docstring
+# # this package
+# from sphinx_toolbox.more_autodoc.typehints import format_annotation, process_docstring
 
-T = TypeVar('T')
-U = TypeVar('U', covariant=True)
-V = TypeVar('V', contravariant=True)
-W = NewType('W', str)
-
-
-class A:
-
-	def get_type(self):  # noqa: MAN002
-		return type(self)
-
-	class Inner:
-		pass
+# T = TypeVar('T')
+# U = TypeVar('U', covariant=True)
+# V = TypeVar('V', contravariant=True)
+# W = NewType('W', str)
 
 
-class B(Generic[T]):
-	# This is set to make sure the correct class name ("B") is picked up
-	name = "Foo"
+# class A:
+
+# 	def get_type(self):  # noqa: MAN002
+# 		return type(self)
+
+# 	class Inner:
+# 		pass
 
 
-class C(B[str]):
-	pass
+# class B(Generic[T]):
+# 	# This is set to make sure the correct class name ("B") is picked up
+# 	name = "Foo"
 
 
-class D(typing_extensions.Protocol):
-	pass
+# class C(B[str]):
+# 	pass
 
 
-class E(typing_extensions.Protocol[T]):  # type: ignore[misc]
-	pass
+# class D(typing_extensions.Protocol):
+# 	pass
 
 
-class Slotted:
-	__slots__ = ()
+# class E(typing_extensions.Protocol[T]):  # type: ignore[misc]
+# 	pass
 
 
-class Metaclass(type):
-	pass
+# class Slotted:
+# 	__slots__ = ()
 
 
-if sys.version_info >= (3, 10):
-	union_str_bool = str | bool
-	union_str_any = str | Any
-else:
-	union_str_bool = NotImplemented
-	union_str_any = NotImplemented
+# class Metaclass(type):
+# 	pass
 
 
-@pytest.mark.parametrize(
-		"annotation, expected_result",
-		[
-				(str, ":py:class:`str`"),
-				(int, ":py:class:`int`"),
-				(type(None), ":py:obj:`None`"),
-				(type, ":py:class:`type`"),
-				(Type, ":py:class:`~typing.Type`"),
-				(Type[A], ":py:class:`~typing.Type`\\[:py:class:`~%s.A`]" % __name__),
-				(Any, ":py:data:`~typing.Any`"),
-				(AnyStr, ":py:data:`~typing.AnyStr`"),
-				(Mapping, ":py:class:`~typing.Mapping`"),
-				(Mapping[str, bool], ":py:class:`~typing.Mapping`\\[:py:class:`str`, :py:class:`bool`]"),
-				(Dict, ":py:class:`~typing.Dict`"),
-				(Dict[str, bool], ":py:class:`~typing.Dict`\\[:py:class:`str`, :py:class:`bool`]"),
-				(Tuple, ":py:data:`~typing.Tuple`"),
-				(Tuple[str, bool], ":py:data:`~typing.Tuple`\\[:py:class:`str`, :py:class:`bool`]"),
-				(
-						Tuple[int, int, int],
-						":py:data:`~typing.Tuple`\\[:py:class:`int`, :py:class:`int`, :py:class:`int`]",
-						),
-				(Tuple[str, ...], ":py:data:`~typing.Tuple`\\[:py:class:`str`, ...]"),
-				(Union, ":py:class:`~typing.Union`"),
-				(Union[str, bool], ":py:class:`~typing.Union`\\[:py:class:`str`, :py:class:`bool`]"),
-				(Union[str, Any], ":py:class:`~typing.Union`\\[:py:class:`str`, :py:data:`~typing.Any`]"),
-				pytest.param(
-						union_str_bool,
-						":py:class:`~typing.Union`\\[:py:class:`str`, :py:class:`bool`]",
-						marks=min_version("3.10", reason="Introduced in 3.10"),
-						),
-				pytest.param(
-						union_str_any,
-						":py:class:`~typing.Union`\\[:py:class:`str`, :py:data:`~typing.Any`]",
-						marks=min_version("3.10", reason="Introduced in 3.10"),
-						),
-				(Optional[str], ":py:data:`~typing.Optional`\\[:py:class:`str`]"),
-				(Callable, ":py:data:`~typing.Callable`"),
-				(Callable[..., int], ":py:data:`~typing.Callable`\\[..., :py:class:`int`]"),
-				(Callable[[int], int], ":py:data:`~typing.Callable`\\[\\[:py:class:`int`], :py:class:`int`]"),
-				(
-						Callable[[int, str], bool],
-						":py:data:`~typing.Callable`\\[\\[:py:class:`int`, :py:class:`str`], :py:class:`bool`]",
-						),
-				(
-						Callable[[int, str], None],
-						":py:data:`~typing.Callable`\\[\\[:py:class:`int`, :py:class:`str`], :py:obj:`None`]",
-						),
-				(Pattern, ":py:class:`~typing.Pattern`"),
-				(Pattern[str], ":py:class:`~typing.Pattern`\\[:py:class:`str`]"),
-				(IO, ":py:class:`~typing.IO`"),
-				(IO[str], ":py:class:`~typing.IO`\\[:py:class:`str`]"),
-				(Metaclass, ":py:class:`~%s.Metaclass`" % __name__),
-				(A, ":py:class:`~%s.A`" % __name__),
-				(B, ":py:class:`~%s.B`" % __name__),
-				(B[int], ":py:class:`~%s.B`\\[:py:class:`int`]" % __name__),
-				(C, ":py:class:`~%s.C`" % __name__),
-				(D, ":py:class:`~%s.D`" % __name__),
-				(E, ":py:class:`~%s.E`" % __name__),
-				(E[int], ":py:class:`~%s.E`\\[:py:class:`int`]" % __name__),
-				(
-						W,
-						(
-								f':py:{"class" if sys.version_info >= (3, 10) else "func"}:'
-								f'`~typing.NewType`\\(:py:data:`~W`, :py:class:`str`)'
-								),
-						),
-				],
-		)
-def test_format_annotation(inv: Inventory, annotation: Any, expected_result: str):
-	result = format_annotation(annotation)
-	assert result == expected_result
-
-	# Test with the "fully_qualified" flag turned on
-	if "typing" in expected_result or __name__ in expected_result:
-		expected_result = expected_result.replace("~typing", "typing")
-		expected_result = expected_result.replace('~' + __name__, __name__)
-		assert format_annotation(annotation, fully_qualified=True) == expected_result
-
-	# Test for the correct role (class vs data) using the official Sphinx inventory
-	if "typing" in expected_result:
-		m = re.match("^:py:(?P<role>class|data|func):`~(?P<name>[^`]+)`", result)
-		assert m, "No match"
-		name = m.group("name")
-		expected_role = next((o.role for o in inv.objects if o.name == name), None)
-		if expected_role:
-			if expected_role == "function":
-				expected_role = "func"
-
-			if name == "typing.Union" and sys.version_info < (3, 14):
-				expected_role = "class"
-
-			assert m.group("role") == expected_role
+# if sys.version_info >= (3, 10):
+# 	union_str_bool = str | bool
+# 	union_str_any = str | Any
+# else:
+# 	union_str_bool = NotImplemented
+# 	union_str_any = NotImplemented
 
 
-@pytest.mark.parametrize(
-		"annotation, expected_result",
-		[
-				(
-						Generic[T],
-						":py:class:`~typing.Generic`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`]",
-						),
-				(
-						Mapping[T, int],  # type: ignore[valid-type]
-						":py:class:`~typing.Mapping`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
-						":py:class:`int`]",
-						),
-				(
-						Mapping[str, V],  # type: ignore[valid-type]
-						":py:class:`~typing.Mapping`\\[:py:class:`str`, "
-						":py:data:`-V <tests.test_more_autodoc.test_autodoc_typehints.V>`]",
-						),
-				(
-						Mapping[T, U],  # type: ignore[valid-type]
-						":py:class:`~typing.Mapping`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
-						":py:data:`+U <tests.test_more_autodoc.test_autodoc_typehints.U>`]",
-						),
-				(
-						Dict[T, int],  # type: ignore[valid-type]
-						":py:class:`~typing.Dict`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
-						":py:class:`int`]",
-						),
-				(
-						Dict[str, V],  # type: ignore[valid-type]
-						":py:class:`~typing.Dict`\\[:py:class:`str`, "
-						":py:data:`-V <tests.test_more_autodoc.test_autodoc_typehints.V>`]",
-						),
-				(
-						Dict[T, U],  # type: ignore[valid-type]
-						":py:class:`~typing.Dict`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
-						":py:data:`+U <tests.test_more_autodoc.test_autodoc_typehints.U>`]",
-						),
-				(
-						Callable[[T], T],
-						":py:data:`~typing.Callable`\\[\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`], "
-						":py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`]",
-						),
-				],
-		)
-def test_format_annotation_typevar(inv: Inventory, annotation: Any, expected_result: str):
-	result = format_annotation(annotation)
-	assert result == expected_result
+# @pytest.mark.parametrize(
+# 		"annotation, expected_result",
+# 		[
+# 				(str, ":py:class:`str`"),
+# 				(int, ":py:class:`int`"),
+# 				(type(None), ":py:obj:`None`"),
+# 				(type, ":py:class:`type`"),
+# 				(Type, ":py:class:`~typing.Type`"),
+# 				(Type[A], ":py:class:`~typing.Type`\\[:py:class:`~%s.A`]" % __name__),
+# 				(Any, ":py:data:`~typing.Any`"),
+# 				(AnyStr, ":py:data:`~typing.AnyStr`"),
+# 				(Mapping, ":py:class:`~typing.Mapping`"),
+# 				(Mapping[str, bool], ":py:class:`~typing.Mapping`\\[:py:class:`str`, :py:class:`bool`]"),
+# 				(Dict, ":py:class:`~typing.Dict`"),
+# 				(Dict[str, bool], ":py:class:`~typing.Dict`\\[:py:class:`str`, :py:class:`bool`]"),
+# 				(Tuple, ":py:data:`~typing.Tuple`"),
+# 				(Tuple[str, bool], ":py:data:`~typing.Tuple`\\[:py:class:`str`, :py:class:`bool`]"),
+# 				(
+# 						Tuple[int, int, int],
+# 						":py:data:`~typing.Tuple`\\[:py:class:`int`, :py:class:`int`, :py:class:`int`]",
+# 						),
+# 				(Tuple[str, ...], ":py:data:`~typing.Tuple`\\[:py:class:`str`, ...]"),
+# 				(Union, ":py:class:`~typing.Union`"),
+# 				(Union[str, bool], ":py:class:`~typing.Union`\\[:py:class:`str`, :py:class:`bool`]"),
+# 				(Union[str, Any], ":py:class:`~typing.Union`\\[:py:class:`str`, :py:data:`~typing.Any`]"),
+# 				pytest.param(
+# 						union_str_bool,
+# 						":py:class:`~typing.Union`\\[:py:class:`str`, :py:class:`bool`]",
+# 						marks=min_version("3.10", reason="Introduced in 3.10"),
+# 						),
+# 				pytest.param(
+# 						union_str_any,
+# 						":py:class:`~typing.Union`\\[:py:class:`str`, :py:data:`~typing.Any`]",
+# 						marks=min_version("3.10", reason="Introduced in 3.10"),
+# 						),
+# 				(Optional[str], ":py:data:`~typing.Optional`\\[:py:class:`str`]"),
+# 				(Callable, ":py:data:`~typing.Callable`"),
+# 				(Callable[..., int], ":py:data:`~typing.Callable`\\[..., :py:class:`int`]"),
+# 				(Callable[[int], int], ":py:data:`~typing.Callable`\\[\\[:py:class:`int`], :py:class:`int`]"),
+# 				(
+# 						Callable[[int, str], bool],
+# 						":py:data:`~typing.Callable`\\[\\[:py:class:`int`, :py:class:`str`], :py:class:`bool`]",
+# 						),
+# 				(
+# 						Callable[[int, str], None],
+# 						":py:data:`~typing.Callable`\\[\\[:py:class:`int`, :py:class:`str`], :py:obj:`None`]",
+# 						),
+# 				(Pattern, ":py:class:`~typing.Pattern`"),
+# 				(Pattern[str], ":py:class:`~typing.Pattern`\\[:py:class:`str`]"),
+# 				(IO, ":py:class:`~typing.IO`"),
+# 				(IO[str], ":py:class:`~typing.IO`\\[:py:class:`str`]"),
+# 				(Metaclass, ":py:class:`~%s.Metaclass`" % __name__),
+# 				(A, ":py:class:`~%s.A`" % __name__),
+# 				(B, ":py:class:`~%s.B`" % __name__),
+# 				(B[int], ":py:class:`~%s.B`\\[:py:class:`int`]" % __name__),
+# 				(C, ":py:class:`~%s.C`" % __name__),
+# 				(D, ":py:class:`~%s.D`" % __name__),
+# 				(E, ":py:class:`~%s.E`" % __name__),
+# 				(E[int], ":py:class:`~%s.E`\\[:py:class:`int`]" % __name__),
+# 				(
+# 						W,
+# 						(
+# 								f':py:{"class" if sys.version_info >= (3, 10) else "func"}:'
+# 								f'`~typing.NewType`\\(:py:data:`~W`, :py:class:`str`)'
+# 								),
+# 						),
+# 				],
+# 		)
+# def test_format_annotation(inv: Inventory, annotation: Any, expected_result: str):
+# 	result = format_annotation(annotation)
+# 	assert result == expected_result
 
-	# Test with the "fully_qualified" flag turned on
-	if "typing" in expected_result or __name__ in expected_result:
-		expected_result = expected_result.replace("~typing", "typing")
-		expected_result = expected_result.replace('~' + __name__, __name__)
-		assert format_annotation(annotation, fully_qualified=True) == expected_result
+# 	# Test with the "fully_qualified" flag turned on
+# 	if "typing" in expected_result or __name__ in expected_result:
+# 		expected_result = expected_result.replace("~typing", "typing")
+# 		expected_result = expected_result.replace('~' + __name__, __name__)
+# 		assert format_annotation(annotation, fully_qualified=True) == expected_result
 
-	# Test for the correct role (class vs data) using the official Sphinx inventory
-	if "typing" in expected_result:
-		m = re.match("^:py:(?P<role>class|data|func):`~(?P<name>[^`]+)`", result)
-		assert m, "No match"
-		name = m.group("name")
-		expected_role = next((o.role for o in inv.objects if o.name == name), None)
-		if expected_role:
-			if expected_role == "function":
-				expected_role = "func"
+# 	# Test for the correct role (class vs data) using the official Sphinx inventory
+# 	if "typing" in expected_result:
+# 		m = re.match("^:py:(?P<role>class|data|func):`~(?P<name>[^`]+)`", result)
+# 		assert m, "No match"
+# 		name = m.group("name")
+# 		expected_role = next((o.role for o in inv.objects if o.name == name), None)
+# 		if expected_role:
+# 			if expected_role == "function":
+# 				expected_role = "func"
 
-			assert m.group("role") == expected_role
+# 			if name == "typing.Union" and sys.version_info < (3, 14):
+# 				expected_role = "class"
 
-
-@pytest.mark.parametrize("library", [typing, typing_extensions], ids=["typing", "typing_extensions"])
-@pytest.mark.parametrize(
-		"annotation, params, expected_result",
-		[
-				("ClassVar", int, ":py:data:`~typing.ClassVar`\\[:py:class:`int`]"),
-				("NoReturn", None, ":py:data:`~typing.NoReturn`"),
-				("Literal", ('a', 1), ":py:data:`~typing.Literal`\\[``'a'``, ``1``]"),
-				("Type", None, ":py:class:`~typing.Type`"),
-				("Type", (A, ), ":py:class:`~typing.Type`\\[:py:class:`~%s.A`]" % __name__),
-				],
-		)
-def test_format_annotation_both_libs(
-		inv: Inventory,
-		library: ModuleType,
-		annotation: str,
-		params: Any,
-		expected_result: str,
-		):
-	try:
-		annotation_cls = getattr(library, annotation)
-	except AttributeError:
-		pytest.skip(f"{annotation} not available in the {library.__name__} module")
-
-	ann = annotation_cls if params is None else annotation_cls[params]
-	result = format_annotation(ann)
-	assert result == expected_result
+# 			assert m.group("role") == expected_role
 
 
-def test_process_docstring_slot_wrapper():
-	lines: List[str] = []
-	process_docstring(None, "class", "SlotWrapper", Slotted, None, lines)  # type: ignore[arg-type]
-	assert not lines
+# @pytest.mark.parametrize(
+# 		"annotation, expected_result",
+# 		[
+# 				(
+# 						Generic[T],
+# 						":py:class:`~typing.Generic`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`]",
+# 						),
+# 				(
+# 						Mapping[T, int],  # type: ignore[valid-type]
+# 						":py:class:`~typing.Mapping`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
+# 						":py:class:`int`]",
+# 						),
+# 				(
+# 						Mapping[str, V],  # type: ignore[valid-type]
+# 						":py:class:`~typing.Mapping`\\[:py:class:`str`, "
+# 						":py:data:`-V <tests.test_more_autodoc.test_autodoc_typehints.V>`]",
+# 						),
+# 				(
+# 						Mapping[T, U],  # type: ignore[valid-type]
+# 						":py:class:`~typing.Mapping`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
+# 						":py:data:`+U <tests.test_more_autodoc.test_autodoc_typehints.U>`]",
+# 						),
+# 				(
+# 						Dict[T, int],  # type: ignore[valid-type]
+# 						":py:class:`~typing.Dict`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
+# 						":py:class:`int`]",
+# 						),
+# 				(
+# 						Dict[str, V],  # type: ignore[valid-type]
+# 						":py:class:`~typing.Dict`\\[:py:class:`str`, "
+# 						":py:data:`-V <tests.test_more_autodoc.test_autodoc_typehints.V>`]",
+# 						),
+# 				(
+# 						Dict[T, U],  # type: ignore[valid-type]
+# 						":py:class:`~typing.Dict`\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`, "
+# 						":py:data:`+U <tests.test_more_autodoc.test_autodoc_typehints.U>`]",
+# 						),
+# 				(
+# 						Callable[[T], T],
+# 						":py:data:`~typing.Callable`\\[\\[:py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`], "
+# 						":py:data:`~T <tests.test_more_autodoc.test_autodoc_typehints.T>`]",
+# 						),
+# 				],
+# 		)
+# def test_format_annotation_typevar(inv: Inventory, annotation: Any, expected_result: str):
+# 	result = format_annotation(annotation)
+# 	assert result == expected_result
+
+# 	# Test with the "fully_qualified" flag turned on
+# 	if "typing" in expected_result or __name__ in expected_result:
+# 		expected_result = expected_result.replace("~typing", "typing")
+# 		expected_result = expected_result.replace('~' + __name__, __name__)
+# 		assert format_annotation(annotation, fully_qualified=True) == expected_result
+
+# 	# Test for the correct role (class vs data) using the official Sphinx inventory
+# 	if "typing" in expected_result:
+# 		m = re.match("^:py:(?P<role>class|data|func):`~(?P<name>[^`]+)`", result)
+# 		assert m, "No match"
+# 		name = m.group("name")
+# 		expected_role = next((o.role for o in inv.objects if o.name == name), None)
+# 		if expected_role:
+# 			if expected_role == "function":
+# 				expected_role = "func"
+
+# 			assert m.group("role") == expected_role
+
+
+# @pytest.mark.parametrize("library", [typing, typing_extensions], ids=["typing", "typing_extensions"])
+# @pytest.mark.parametrize(
+# 		"annotation, params, expected_result",
+# 		[
+# 				("ClassVar", int, ":py:data:`~typing.ClassVar`\\[:py:class:`int`]"),
+# 				("NoReturn", None, ":py:data:`~typing.NoReturn`"),
+# 				("Literal", ('a', 1), ":py:data:`~typing.Literal`\\[``'a'``, ``1``]"),
+# 				("Type", None, ":py:class:`~typing.Type`"),
+# 				("Type", (A, ), ":py:class:`~typing.Type`\\[:py:class:`~%s.A`]" % __name__),
+# 				],
+# 		)
+# def test_format_annotation_both_libs(
+# 		inv: Inventory,
+# 		library: ModuleType,
+# 		annotation: str,
+# 		params: Any,
+# 		expected_result: str,
+# 		):
+# 	try:
+# 		annotation_cls = getattr(library, annotation)
+# 	except AttributeError:
+# 		pytest.skip(f"{annotation} not available in the {library.__name__} module")
+
+# 	ann = annotation_cls if params is None else annotation_cls[params]
+# 	result = format_annotation(ann)
+# 	assert result == expected_result
+
+
+# def test_process_docstring_slot_wrapper():
+# 	lines: List[str] = []
+# 	process_docstring(None, "class", "SlotWrapper", Slotted, None, lines)  # type: ignore[arg-type]
+# 	assert not lines

@@ -61,6 +61,7 @@ from domdf_python_tools.doctools import prettify_docstrings
 from sphinx.addnodes import desc_content
 from sphinx.application import Sphinx
 from sphinx.environment import BuildEnvironment
+# from sphinx.ext.autodoc import Documenter, logger
 from sphinx.ext.autodoc import Documenter
 from sphinx.locale import __
 from sphinx.util import logging
@@ -384,40 +385,40 @@ Type annotation for Sphinx extensions' ``setup`` functions.
 """
 
 
-def unknown_module_warning(documenter: Documenter) -> None:
-	"""
-	Log a warning that the module to import the object from is unknown.
+# def unknown_module_warning(documenter: Documenter) -> None:
+# 	"""
+# 	Log a warning that the module to import the object from is unknown.
 
-	.. versionadded:: 0.2.0
+# 	.. versionadded:: 0.2.0
 
-	:param documenter:
-	"""
+# 	:param documenter:
+# 	"""
 
-	msg = __(
-			"don't know which module to import for autodocumenting %r "
-			'(try placing a "module" or "currentmodule" directive in the document, '
-			"or giving an explicit module name)",
-			)
+# 	msg = __(
+# 			"don't know which module to import for autodocumenting %r "
+# 			'(try placing a "module" or "currentmodule" directive in the document, '
+# 			"or giving an explicit module name)",
+# 			)
 
-	logger.warning(msg % documenter.name, type="autodoc")
+# 	logger.warning(msg % documenter.name, type="autodoc")
 
 
-def filter_members_warning(member: Any, exception: Exception) -> None:
-	"""
-	Log a warning when filtering members.
+# def filter_members_warning(member: Any, exception: Exception) -> None:
+# 	"""
+# 	Log a warning when filtering members.
 
-	.. versionadded:: 0.2.0
+# 	.. versionadded:: 0.2.0
 
-	:param member:
-	:param exception:
-	"""
+# 	:param member:
+# 	:param exception:
+# 	"""
 
-	logger.warning(
-			__("autodoc: failed to determine %r to be documented, the following exception was raised:\n%s"),
-			member,
-			exception,
-			type="autodoc",
-			)
+# 	logger.warning(
+# 			__("autodoc: failed to determine %r to be documented, the following exception was raised:\n%s"),
+# 			member,
+# 			exception,
+# 			type="autodoc",
+# 			)
 
 
 class Param(TypedDict):
