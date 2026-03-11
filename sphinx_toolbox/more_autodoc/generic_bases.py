@@ -71,133 +71,133 @@ API Reference
 #  OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-# # stdlib
-# import sys
-# from typing import List, Tuple
+# stdlib
+import sys
+from typing import List, Tuple
 
-# # 3rd party
-# from sphinx.application import Sphinx
-# from sphinx.ext.autodoc import Documenter
-# from sphinx.locale import _
-# from typing_extensions import final
+# 3rd party
+from sphinx.application import Sphinx
+from sphinx.ext.autodoc import Documenter
+from sphinx.locale import _
+from typing_extensions import final
 
-# # this package
-# from sphinx_toolbox.more_autodoc.typehints import format_annotation
-# from sphinx_toolbox.more_autosummary import PatchedAutoSummClassDocumenter
-# from sphinx_toolbox.utils import SphinxExtMetadata, allow_subclass_add, metadata_add_version
+# this package
+from sphinx_toolbox.more_autodoc.typehints import format_annotation
+from sphinx_toolbox.more_autosummary import PatchedAutoSummClassDocumenter
+from sphinx_toolbox.utils import SphinxExtMetadata, allow_subclass_add, metadata_add_version
 
-# if sys.version_info >= (3, 8):  # pragma: no cover (<py38)
-# 	# stdlib
-# 	from typing import get_origin
-# else:  # pragma: no cover (py38+)
-# 	# 3rd party
-# 	from typing_inspect import get_origin
+if sys.version_info >= (3, 8):  # pragma: no cover (<py38)
+	# stdlib
+	from typing import get_origin
+else:  # pragma: no cover (py38+)
+	# 3rd party
+	from typing_inspect import get_origin
 
-# __all__ = ("GenericBasesClassDocumenter", "setup")
-
-
-# class GenericBasesClassDocumenter(PatchedAutoSummClassDocumenter):
-# 	"""
-# 	Class documenter that adds inheritance info, with support for generics.
-# 	"""
-
-# 	def add_directive_header(self, sig: str) -> None:
-# 		"""
-# 		Add the directive's header and options to the generated content.
-
-# 		:param sig: The function/class signature.
-# 		"""
-
-# 		sourcename = self.get_sourcename()
-
-# 		if self.doc_as_attr:
-# 			self.directivetype = "attribute"
-
-# 		Documenter.add_directive_header(self, sig)
-
-# 		if self.analyzer and '.'.join(self.objpath) in self.analyzer.finals:
-# 			self.add_line("   :final:", sourcename)
-
-# 		# add inheritance info, if wanted
-# 		if not self.doc_as_attr and self.options.show_inheritance:
-# 			_add_generic_bases(self)
+__all__ = ("GenericBasesClassDocumenter", "setup")
 
 
-# def _add_generic_bases(documenter: Documenter) -> None:
-# 	"""
-# 	Add the generic bases to the output of the given Documenter.
+class GenericBasesClassDocumenter(PatchedAutoSummClassDocumenter):
+	"""
+	Class documenter that adds inheritance info, with support for generics.
+	"""
 
-# 	.. versionadded:: 2.13.0  (undocumented)
+	def add_directive_header(self, sig: str) -> None:
+		"""
+		Add the directive's header and options to the generated content.
 
-# 	:param documenter:
-# 	"""
+		:param sig: The function/class signature.
+		"""
 
-# 	sourcename = documenter.get_sourcename()
+		sourcename = self.get_sourcename()
 
-# 	# add inheritance info, if wanted
-# 	fully_qualified = getattr(documenter.env.config, "generic_bases_fully_qualified", False)
+		if self.doc_as_attr:
+			self.directivetype = "attribute"
 
-# 	documenter.add_line('', sourcename)
-# 	bases = []  # pylint: disable=W8301
+		Documenter.add_directive_header(self, sig)
 
-# 	if (
-# 			hasattr(documenter.object, "__orig_bases__") and len(documenter.object.__orig_bases__)
-# 			and get_origin(documenter.object.__orig_bases__[0]) is documenter.object.__bases__[0]
-# 			):
-# 		# Last condition guards against classes that don't directly subclass a Generic.
-# 		bases = [format_annotation(b, fully_qualified) for b in documenter.object.__orig_bases__]
+		if self.analyzer and '.'.join(self.objpath) in self.analyzer.finals:
+			self.add_line("   :final:", sourcename)
 
-# 	elif hasattr(documenter.object, "__bases__") and len(documenter.object.__bases__):
-# 		bases = [format_annotation(b, fully_qualified) for b in documenter.object.__bases__]
-
-# 	if bases:
-# 		bases_string = ", ".join(bases).replace("typing_extensions.", "typing.")
-# 		documenter.add_line("   " + _("Bases: %s") % bases_string, sourcename)
+		# add inheritance info, if wanted
+		if not self.doc_as_attr and self.options.show_inheritance:
+			_add_generic_bases(self)
 
 
-# @metadata_add_version
-# def setup(app: Sphinx) -> SphinxExtMetadata:
-# 	"""
-# 	Setup :mod:`sphinx_toolbox.more_autodoc.generic_bases`.
+def _add_generic_bases(documenter: Documenter) -> None:
+	"""
+	Add the generic bases to the output of the given Documenter.
 
-# 	.. versionadded:: 1.5.0
+	.. versionadded:: 2.13.0  (undocumented)
 
-# 	:param app: The Sphinx application.
-# 	"""
+	:param documenter:
+	"""
 
-# 	allow_subclass_add(app, GenericBasesClassDocumenter)
-# 	app.add_config_value(
-# 			"generic_bases_fully_qualified",
-# 			default=False,
-# 			rebuild="env",
-# 			types=[bool],
-# 			)
+	sourcename = documenter.get_sourcename()
 
-# 	return {"parallel_read_safe": True}
+	# add inheritance info, if wanted
+	fully_qualified = getattr(documenter.env.config, "generic_bases_fully_qualified", False)
 
+	documenter.add_line('', sourcename)
+	bases = []  # pylint: disable=W8301
 
-# class Example(List[Tuple[str, float, List[str]]]):  # noqa: PRM002
-# 	"""
-# 	An example of :mod:`sphinx_toolbox.more_autodoc.generic_bases`.
-# 	"""
+	if (
+			hasattr(documenter.object, "__orig_bases__") and len(documenter.object.__orig_bases__)
+			and get_origin(documenter.object.__orig_bases__[0]) is documenter.object.__bases__[0]
+			):
+		# Last condition guards against classes that don't directly subclass a Generic.
+		bases = [format_annotation(b, fully_qualified) for b in documenter.object.__orig_bases__]
 
-# 	def __init__(self, iterable=()):  # pragma: no cover  # noqa: MAN001
-# 		pass
+	elif hasattr(documenter.object, "__bases__") and len(documenter.object.__bases__):
+		bases = [format_annotation(b, fully_qualified) for b in documenter.object.__bases__]
 
-
-# class Example2(Example):
-# 	"""
-# 	An example of :mod:`sphinx_toolbox.more_autodoc.generic_bases`.
-
-# 	This one does not directly subclass a Generic.
-# 	"""
+	if bases:
+		bases_string = ", ".join(bases).replace("typing_extensions.", "typing.")
+		documenter.add_line("   " + _("Bases: %s") % bases_string, sourcename)
 
 
-# @final
-# class FinalExample(List[Tuple[str, float, List[str]]]):  # noqa: PRM002
-# 	"""
-# 	An example of :mod:`sphinx_toolbox.more_autodoc.generic_bases` decorated with ``@final``.
-# 	"""
+@metadata_add_version
+def setup(app: Sphinx) -> SphinxExtMetadata:
+	"""
+	Setup :mod:`sphinx_toolbox.more_autodoc.generic_bases`.
 
-# 	def __init__(self, iterable=()):  # pragma: no cover  # noqa: MAN001
-# 		pass
+	.. versionadded:: 1.5.0
+
+	:param app: The Sphinx application.
+	"""
+
+	allow_subclass_add(app, GenericBasesClassDocumenter)
+	app.add_config_value(
+			"generic_bases_fully_qualified",
+			default=False,
+			rebuild="env",
+			types=[bool],
+			)
+
+	return {"parallel_read_safe": True}
+
+
+class Example(List[Tuple[str, float, List[str]]]):  # noqa: PRM002
+	"""
+	An example of :mod:`sphinx_toolbox.more_autodoc.generic_bases`.
+	"""
+
+	def __init__(self, iterable=()):  # pragma: no cover  # noqa: MAN001
+		pass
+
+
+class Example2(Example):
+	"""
+	An example of :mod:`sphinx_toolbox.more_autodoc.generic_bases`.
+
+	This one does not directly subclass a Generic.
+	"""
+
+
+@final
+class FinalExample(List[Tuple[str, float, List[str]]]):  # noqa: PRM002
+	"""
+	An example of :mod:`sphinx_toolbox.more_autodoc.generic_bases` decorated with ``@final``.
+	"""
+
+	def __init__(self, iterable=()):  # pragma: no cover  # noqa: MAN001
+		pass

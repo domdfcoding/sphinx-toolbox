@@ -6,7 +6,7 @@ sphinx-toolbox Demo - Autoprotocol
 
 .. automodule:: autoprotocol_demo
 	:members:
-	:exclude-members: HasGreaterThan
+	:exclude-members: HasGreaterThan,T_co
 
 .. autoprotocol:: autoprotocol_demo.HasGreaterThan
 

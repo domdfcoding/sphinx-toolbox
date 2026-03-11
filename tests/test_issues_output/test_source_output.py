@@ -76,17 +76,17 @@ def test_output_github(github_source_page: BeautifulSoup, html_regression: HTMLR
 # The following is in here because it needs to run with different options to tests/test_output
 
 pages_to_check: List[Union[str, ParameterSet]] = [
-		# "autoprotocol.html",
-		# pytest.param(
-		# 		"generic_bases.html",
-		# 		marks=only_version(3.7, reason="Output differs on Python 3.7"),
-		# 		id="generic_bases_37",
-		# 		),
-		# pytest.param(
-		# 		"generic_bases.html",
-		# 		marks=min_version(3.8, reason="Output differs on Python 3.8+"),
-		# 		id="generic_bases",
-		# 		),
+		"autoprotocol.html",
+		pytest.param(
+				"generic_bases.html",
+				marks=only_version(3.7, reason="Output differs on Python 3.7"),
+				id="generic_bases_37",
+				),
+		pytest.param(
+				"generic_bases.html",
+				marks=min_version(3.8, reason="Output differs on Python 3.8+"),
+				id="generic_bases",
+				),
 		]
 
 

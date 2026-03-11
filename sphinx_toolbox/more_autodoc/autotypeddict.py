@@ -126,403 +126,403 @@ API Reference
 #  |  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# # stdlib
-# from typing import Any, Callable, Dict, List, Tuple, Type, get_type_hints
-
-# # 3rd party
-# import docutils.statemachine
-# import sphinx
-# from domdf_python_tools.stringlist import StringList
-# from sphinx.application import Sphinx
-# from sphinx.domains import ObjType
-# from sphinx.domains.python import PyClasslike, PyXRefRole
-# from sphinx.ext.autodoc import INSTANCEATTR, ClassDocumenter, Documenter, Options
-# from sphinx.locale import _
-# from sphinx.pycode import ModuleAnalyzer
-# from sphinx.util.inspect import safe_getattr
-
-# # this package
-# from sphinx_toolbox.more_autodoc import ObjectMembers
-# from sphinx_toolbox.more_autodoc.typehints import format_annotation
-# from sphinx_toolbox.utils import (
-# 		SphinxExtMetadata,
-# 		add_fallback_css_class,
-# 		allow_subclass_add,
-# 		filter_members_warning,
-# 		flag,
-# 		metadata_add_version
-# 		)
-
-# __all__ = ("TypedDictDocumenter", "setup")
-
-
-# class TypedDictDocumenter(ClassDocumenter):  # noqa: PRM002
-# 	r"""
-# 	Sphinx autodoc :class:`~sphinx.ext.autodoc.Documenter`
-# 	for documenting :class:`typing.TypedDict`\s.
-# 	"""  # noqa: D400
-
-# 	objtype = "typeddict"
-# 	directivetype = "typeddict"
-# 	priority = 20
-# 	option_spec: Dict[str, Callable] = {
-# 			"noindex": flag,
-# 			"alphabetical": flag,
-# 			"show-inheritance": flag,
-# 			}
-
-# 	def __init__(self, *args: Any) -> None:
-# 		super().__init__(*args)
-
-# 		self.options = Options(self.options.copy())
-
-# 		alphabetical = self.options.get("alphabetical", False)
-# 		if alphabetical:
-# 			self.options["member-order"] = "alphabetical"
-# 		else:
-# 			self.options["member-order"] = "bysource"
-
-# 		for key in {"inherited-members", "special-members"}:  # pragma: no cover
-# 			if key in self.options:
-# 				del self.options[key]
-
-# 	@classmethod
-# 	def can_document_member(
-# 			cls,
-# 			member: Any,
-# 			membername: str,
-# 			isattr: bool,
-# 			parent: Any,
-# 			) -> bool:
-# 		"""
-# 		Called to see if a member can be documented by this documenter.
-
-# 		:param member: The member being checked.
-# 		:param membername: The name of the member.
-# 		:param isattr:
-# 		:param parent: The parent of the member.
-# 		"""
-
-# 		for attr in {"__optional_keys__", "__required_keys__", "__total__"}:
-# 			if not hasattr(member, attr):
-# 				return False
-
-# 		return True
-
-# 	def format_signature(self, **kwargs: Any) -> str:  # noqa: PRM002
-# 		"""
-# 		Typed Dicts do not have a signature.
-
-# 		:rtype:
-
-# 		.. latex:clearpage::
-# 		"""
-
-# 		return ''
-
-# 	def add_directive_header(self, sig: str) -> None:
-# 		"""
-# 		Add the directive's header and options to the generated content.
-
-# 		:param sig: The function/class signature.
-# 		"""
-
-# 		sourcename = self.get_sourcename()
-
-# 		if self.doc_as_attr:
-# 			self.directivetype = "attribute"
-
-# 		Documenter.add_directive_header(self, sig)
-
-# 		if self.analyzer and '.'.join(self.objpath) in self.analyzer.finals:
-# 			self.add_line("   :final:", sourcename)
-
-# 		# add inheritance info, if wanted
-# 		if not self.doc_as_attr and self.options.show_inheritance:
-# 			self.add_line('', sourcename)
-
-# 			def get_bases(obj: Type) -> List[Type]:
-# 				bases: Tuple[Type, ...] = ()
-# 				if hasattr(obj, "__orig_bases__") and len(obj.__orig_bases__):
-# 					# A subclass of generic types
-# 					# refs: PEP-560 <https://www.python.org/dev/peps/pep-0560/>
-# 					bases = obj.__orig_bases__
-# 				elif hasattr(obj, "__bases__") and len(obj.__bases__):
-# 					# A normal class
-# 					bases = obj.__bases__
-
-# 				output = []
-# 				for base in bases:
-# 					if hasattr(base, "__name__") and base.__name__.startswith('_'):
-# 						output.extend(get_bases(base))
-# 					else:
-# 						output.append(base)
-
-# 				return output
-
-# 			bases = [format_annotation(cls) for cls in get_bases(self.object)]
-# 			self.add_line("   " + _("Bases: %s") % ", ".join(bases), sourcename)
-# 			self.add_line('', sourcename)
-
-# 	def add_content(self, more_content: Any, no_docstring: bool = False) -> None:
-# 		"""
-# 		Add the autodocumenter content.
-
-# 		:param more_content:
-# 		:param no_docstring:
-# 		"""
-
-# 		if self.doc_as_attr:  # pragma: no cover (verbatim from Sphinx)
-# 			classname = safe_getattr(self.object, "__qualname__", None)
-# 			if not classname:
-# 				classname = safe_getattr(self.object, "__name__", None)
-# 			if classname:
-# 				module = safe_getattr(self.object, "__module__", None)
-# 				parentmodule = safe_getattr(self.parent, "__module__", None)
-# 				if module and module != parentmodule:
-# 					classname = str(module) + '.' + str(classname)
-# 				more_content = docutils.statemachine.StringList([_("alias of :class:`%s`") % classname], source='')
-# 				no_docstring = True
-
-# 		# set sourcename and add content from attribute documentation
-# 		sourcename = self.get_sourcename()
-# 		if self.analyzer:
-# 			attr_docs = self.analyzer.find_attr_docs()
-# 			if self.objpath:
-# 				key = ('.'.join(self.objpath[:-1]), self.objpath[-1])
-# 				if key in attr_docs:
-# 					no_docstring = True
-# 					# make a copy of docstring for attributes to avoid cache
-# 					# the change of autodoc-process-docstring event.
-# 					docstrings = [list(attr_docs[key])]
-
-# 					for i, line in enumerate(self.process_doc(docstrings)):
-# 						self.add_line(line, sourcename, i)
-
-# 		# add content from docstrings
-# 		if not no_docstring:
-# 			docstrings = self.get_doc() or []
-# 			if not docstrings:
-# 				# append at least a dummy docstring, so that the event
-# 				# autodoc-process-docstring is fired and can add some
-# 				# content if desired
-# 				docstrings.append([":class:`typing.TypedDict`.", ''])
-# 			for i, line in enumerate(self.process_doc(docstrings)):
-# 				self.add_line(line, sourcename, i)
-
-# 		# add additional content (e.g. from document), if present
-# 		if more_content:  # pragma: no cover (verbatim from Sphinx)
-# 			for line, src in zip(more_content.data, more_content.items):
-# 				self.add_line(line, src[0], src[1])
-
-# 	def document_members(self, all_members: bool = False) -> None:  # noqa: PRM002
-# 		"""
-# 		Generate reST for member documentation. All members are always documented.
-# 		"""
-
-# 		if sphinx.version_info >= (8, 2):
-# 			# set current namespace for finding members
-# 			self._current_document.autodoc_module = self.modname  # type: ignore[attr-defined]
-# 			if self.objpath:
-# 				self._current_document.autodoc_class = self.objpath[0]  # type: ignore[attr-defined]
-
-# 		# find out which members are documentable
-# 		members_check_module, members = self.get_object_members(True)
-
-# 		# document non-skipped members
-# 		member_documenters: List[Tuple[Documenter, bool]] = []
-# 		for mname, member, isattr in self.filter_members(members, True):
-# 			classes = [
-# 					cls for cls in self.documenters.values()
-# 					if cls.can_document_member(member, mname, isattr, self)
-# 					]
-# 			if not classes:
-# 				# don't know how to document this member
-# 				continue
-# 			# prefer the documenter with the highest priority
-# 			classes.sort(key=lambda cls: cls.priority)
-# 			# give explicitly separated module name, so that members
-# 			# of inner classes can be documented
-# 			full_mname = f'{self.modname}::' + '.'.join((*self.objpath, mname))
-# 			documenter = classes[-1](self.directive, full_mname, self.indent)
-# 			member_documenters.append((documenter, isattr))
-
-# 		member_order = self.options.member_order or self.config.autodoc_member_order
-# 		member_documenters = self.sort_members(member_documenters, member_order)
-
-# 		for documenter, isattr in member_documenters:
-# 			documenter.generate(
-# 					all_members=True,
-# 					real_modname=self.real_modname,
-# 					check_module=members_check_module and not isattr,
-# 					)
-
-# 		if sphinx.version_info >= (8, 2):
-# 			# reset current objects
-# 			self._current_document.autodoc_module = ''  # type: ignore[attr-defined]
-# 			self._current_document.autodoc_class = ''  # type: ignore[attr-defined]
-
-# 	def sort_members(
-# 			self,
-# 			documenters: List[Tuple[Documenter, bool]],
-# 			order: str,
-# 			) -> List[Tuple[Documenter, bool]]:
-# 		"""
-# 		Sort the TypedDict's members.
-
-# 		:param documenters:
-# 		:param order:
-# 		"""
-
-# 		# The documenters for the keys, in the desired order
-# 		documenters = super().sort_members(documenters, order)
-
-# 		# Mapping of key names to docstrings (as list of strings)
-# 		docstrings = {
-# 				k[1]: v
-# 				for k, v in ModuleAnalyzer.for_module(self.object.__module__).find_attr_docs().items()
-# 				}
-
-# 		required_keys = []
-# 		optional_keys = []
-# 		types = get_type_hints(self.object)
-
-# 		for d in documenters:
-# 			name = d[0].name.split('.')[-1]
-# 			if name in self.object.__required_keys__:
-# 				required_keys.append(name)
-# 			elif name in self.object.__optional_keys__:
-# 				optional_keys.append(name)
-# 			# else: warn user. This shouldn't ever happen, though.
-
-# 		sourcename = self.get_sourcename()
-
-# 		if required_keys:
-# 			self.add_line('', sourcename)
-# 			self.add_line(":Required Keys:", sourcename)
-# 			self.document_keys(required_keys, types, docstrings)
-# 			self.add_line('', sourcename)
-
-# 		if optional_keys:
-# 			self.add_line('', sourcename)
-# 			self.add_line(":Optional Keys:", sourcename)
-# 			self.document_keys(optional_keys, types, docstrings)
-# 			self.add_line('', sourcename)
-
-# 		return []
-
-# 	def document_keys(
-# 			self,
-# 			keys: List[str],
-# 			types: Dict[str, Type],
-# 			docstrings: Dict[str, List[str]],
-# 			) -> None:
-# 		"""
-# 		Document keys in a :class:`typing.TypedDict`.
-
-# 		:param keys: List of key names to document.
-# 		:param types: Mapping of key names to types.
-# 		:param docstrings: Mapping of key names to docstrings.
-# 		"""
-
-# 		content = StringList()
-
-# 		for key in keys:
-# 			if key in types:
-# 				key_type = f"({format_annotation(types[key])}) "
-# 			else:
-# 				key_type = ''
-
-# 			if key in docstrings:
-# 				content.append(f"    * **{key}** {key_type}-- {' '.join(docstrings.get(key, ''))}")
-# 			else:
-# 				content.append(f"    * **{key}** {key_type}")
-
-# 		for line in content:
-# 			self.add_line(line, self.get_sourcename())
-
-# 	def filter_members(
-# 			self,
-# 			members: ObjectMembers,
-# 			want_all: bool,
-# 			) -> List[Tuple[str, Any, bool]]:
-# 		"""
-# 		Filter the given member list.
-
-# 		:param members:
-# 		:param want_all:
-# 		"""
-
-# 		ret = []
-
-# 		# process members and determine which to skip
-# 		for m in members:
-# 			if sphinx.version_info >= (7, 0):
-# 				membername, member = m.__name__, m.object  # type: ignore[union-attr]
-# 			else:
-# 				membername, member = m
-# 			# if isattr is True, the member is documented as an attribute
-
-# 			if safe_getattr(member, "__sphinx_mock__", False):
-# 				# mocked module or object
-# 				keep = False
-# 			elif membername.startswith('_'):
-# 				keep = False
-# 			else:
-# 				keep = True
-
-# 			# give the user a chance to decide whether this member
-# 			# should be skipped
-# 			if self.env.app:
-# 				# let extensions preprocess docstrings
-# 				try:  # pylint: disable=R8203
-# 					skip_user = self.env.app.emit_firstresult(
-# 							"autodoc-skip-member",
-# 							self.objtype,
-# 							membername,
-# 							member,
-# 							not keep,
-# 							self.options,
-# 							)
-
-# 					if skip_user is not None:
-# 						keep = not skip_user
-
-# 				except Exception as exc:
-# 					filter_members_warning(member, exc)
-# 					keep = False
-
-# 			if keep:
-# 				ret.append((membername, member, member is INSTANCEATTR))
-
-# 		return ret
-
-
-# class _PyTypedDictlike(PyClasslike):
-# 	"""
-# 	Description of a typeddict-like object.
-# 	"""
-
-# 	def get_index_text(self, modname: str, name_cls: Tuple[str, str]) -> str:
-# 		if self.objtype == "typeddict":
-# 			return _("%s (typeddict in %s)") % (name_cls[0], modname)
-# 		else:
-# 			return super().get_index_text(modname, name_cls)
-
-
-# @metadata_add_version
-# def setup(app: Sphinx) -> SphinxExtMetadata:
-# 	"""
-# 	Setup :mod:`sphinx_toolbox.more_autodoc.autotypeddict`.
-
-# 	:param app: The Sphinx application.
-# 	"""
-
-# 	app.registry.domains["py"].object_types["typeddict"] = ObjType("typeddict", "typeddict", "class", "obj")
-# 	app.add_directive_to_domain("py", "typeddict", _PyTypedDictlike)
-# 	app.add_role_to_domain("py", "typeddict", PyXRefRole())
-# 	app.connect("object-description-transform", add_fallback_css_class({"typeddict": "class"}))
-
-# 	allow_subclass_add(app, TypedDictDocumenter)
-
-# 	return {"parallel_read_safe": True}
+# stdlib
+from typing import Any, Callable, Dict, List, Tuple, Type, get_type_hints
+
+# 3rd party
+import docutils.statemachine
+import sphinx
+from domdf_python_tools.stringlist import StringList
+from sphinx.application import Sphinx
+from sphinx.domains import ObjType
+from sphinx.domains.python import PyClasslike, PyXRefRole
+from sphinx.ext.autodoc import INSTANCEATTR, ClassDocumenter, Documenter, Options
+from sphinx.locale import _
+from sphinx.pycode import ModuleAnalyzer
+from sphinx.util.inspect import safe_getattr
+
+# this package
+from sphinx_toolbox.more_autodoc import ObjectMembers
+from sphinx_toolbox.more_autodoc.typehints import format_annotation
+from sphinx_toolbox.utils import (
+		SphinxExtMetadata,
+		add_fallback_css_class,
+		allow_subclass_add,
+		filter_members_warning,
+		flag,
+		metadata_add_version
+		)
+
+__all__ = ("TypedDictDocumenter", "setup")
+
+
+class TypedDictDocumenter(ClassDocumenter):  # noqa: PRM002
+	r"""
+	Sphinx autodoc :class:`~sphinx.ext.autodoc.Documenter`
+	for documenting :class:`typing.TypedDict`\s.
+	"""  # noqa: D400
+
+	objtype = "typeddict"
+	directivetype = "typeddict"
+	priority = 20
+	option_spec: Dict[str, Callable] = {
+			"noindex": flag,
+			"alphabetical": flag,
+			"show-inheritance": flag,
+			}
+
+	def __init__(self, *args: Any) -> None:
+		super().__init__(*args)
+
+		self.options = Options(self.options.copy())
+
+		alphabetical = self.options.get("alphabetical", False)
+		if alphabetical:
+			self.options["member-order"] = "alphabetical"
+		else:
+			self.options["member-order"] = "bysource"
+
+		for key in {"inherited-members", "special-members"}:  # pragma: no cover
+			if key in self.options:
+				del self.options[key]
+
+	@classmethod
+	def can_document_member(
+			cls,
+			member: Any,
+			membername: str,
+			isattr: bool,
+			parent: Any,
+			) -> bool:
+		"""
+		Called to see if a member can be documented by this documenter.
+
+		:param member: The member being checked.
+		:param membername: The name of the member.
+		:param isattr:
+		:param parent: The parent of the member.
+		"""
+
+		for attr in {"__optional_keys__", "__required_keys__", "__total__"}:
+			if not hasattr(member, attr):
+				return False
+
+		return True
+
+	def format_signature(self, **kwargs: Any) -> str:  # noqa: PRM002
+		"""
+		Typed Dicts do not have a signature.
+
+		:rtype:
+
+		.. latex:clearpage::
+		"""
+
+		return ''
+
+	def add_directive_header(self, sig: str) -> None:
+		"""
+		Add the directive's header and options to the generated content.
+
+		:param sig: The function/class signature.
+		"""
+
+		sourcename = self.get_sourcename()
+
+		if self.doc_as_attr:
+			self.directivetype = "attribute"
+
+		Documenter.add_directive_header(self, sig)
+
+		if self.analyzer and '.'.join(self.objpath) in self.analyzer.finals:
+			self.add_line("   :final:", sourcename)
+
+		# add inheritance info, if wanted
+		if not self.doc_as_attr and self.options.show_inheritance:
+			self.add_line('', sourcename)
+
+			def get_bases(obj: Type) -> List[Type]:
+				bases: Tuple[Type, ...] = ()
+				if hasattr(obj, "__orig_bases__") and len(obj.__orig_bases__):
+					# A subclass of generic types
+					# refs: PEP-560 <https://www.python.org/dev/peps/pep-0560/>
+					bases = obj.__orig_bases__
+				elif hasattr(obj, "__bases__") and len(obj.__bases__):
+					# A normal class
+					bases = obj.__bases__
+
+				output = []
+				for base in bases:
+					if hasattr(base, "__name__") and base.__name__.startswith('_'):
+						output.extend(get_bases(base))
+					else:
+						output.append(base)
+
+				return output
+
+			bases = [format_annotation(cls) for cls in get_bases(self.object)]
+			self.add_line("   " + _("Bases: %s") % ", ".join(bases), sourcename)
+			self.add_line('', sourcename)
+
+	def add_content(self, more_content: Any, no_docstring: bool = False) -> None:
+		"""
+		Add the autodocumenter content.
+
+		:param more_content:
+		:param no_docstring:
+		"""
+
+		if self.doc_as_attr:  # pragma: no cover (verbatim from Sphinx)
+			classname = safe_getattr(self.object, "__qualname__", None)
+			if not classname:
+				classname = safe_getattr(self.object, "__name__", None)
+			if classname:
+				module = safe_getattr(self.object, "__module__", None)
+				parentmodule = safe_getattr(self.parent, "__module__", None)
+				if module and module != parentmodule:
+					classname = str(module) + '.' + str(classname)
+				more_content = docutils.statemachine.StringList([_("alias of :class:`%s`") % classname], source='')
+				no_docstring = True
+
+		# set sourcename and add content from attribute documentation
+		sourcename = self.get_sourcename()
+		if self.analyzer:
+			attr_docs = self.analyzer.find_attr_docs()
+			if self.objpath:
+				key = ('.'.join(self.objpath[:-1]), self.objpath[-1])
+				if key in attr_docs:
+					no_docstring = True
+					# make a copy of docstring for attributes to avoid cache
+					# the change of autodoc-process-docstring event.
+					docstrings = [list(attr_docs[key])]
+
+					for i, line in enumerate(self.process_doc(docstrings)):
+						self.add_line(line, sourcename, i)
+
+		# add content from docstrings
+		if not no_docstring:
+			docstrings = self.get_doc() or []
+			if not docstrings:
+				# append at least a dummy docstring, so that the event
+				# autodoc-process-docstring is fired and can add some
+				# content if desired
+				docstrings.append([":class:`typing.TypedDict`.", ''])
+			for i, line in enumerate(self.process_doc(docstrings)):
+				self.add_line(line, sourcename, i)
+
+		# add additional content (e.g. from document), if present
+		if more_content:  # pragma: no cover (verbatim from Sphinx)
+			for line, src in zip(more_content.data, more_content.items):
+				self.add_line(line, src[0], src[1])
+
+	def document_members(self, all_members: bool = False) -> None:  # noqa: PRM002
+		"""
+		Generate reST for member documentation. All members are always documented.
+		"""
+
+		if sphinx.version_info >= (8, 2):
+			# set current namespace for finding members
+			self._current_document.autodoc_module = self.modname  # type: ignore[attr-defined]
+			if self.objpath:
+				self._current_document.autodoc_class = self.objpath[0]  # type: ignore[attr-defined]
+
+		# find out which members are documentable
+		members_check_module, members = self.get_object_members(True)
+
+		# document non-skipped members
+		member_documenters: List[Tuple[Documenter, bool]] = []
+		for mname, member, isattr in self.filter_members(members, True):
+			classes = [
+					cls for cls in self.documenters.values()
+					if cls.can_document_member(member, mname, isattr, self)
+					]
+			if not classes:
+				# don't know how to document this member
+				continue
+			# prefer the documenter with the highest priority
+			classes.sort(key=lambda cls: cls.priority)
+			# give explicitly separated module name, so that members
+			# of inner classes can be documented
+			full_mname = f'{self.modname}::' + '.'.join((*self.objpath, mname))
+			documenter = classes[-1](self.directive, full_mname, self.indent)
+			member_documenters.append((documenter, isattr))
+
+		member_order = self.options.member_order or self.config.autodoc_member_order
+		member_documenters = self.sort_members(member_documenters, member_order)
+
+		for documenter, isattr in member_documenters:
+			documenter.generate(
+					all_members=True,
+					real_modname=self.real_modname,
+					check_module=members_check_module and not isattr,
+					)
+
+		if sphinx.version_info >= (8, 2):
+			# reset current objects
+			self._current_document.autodoc_module = ''  # type: ignore[attr-defined]
+			self._current_document.autodoc_class = ''  # type: ignore[attr-defined]
+
+	def sort_members(
+			self,
+			documenters: List[Tuple[Documenter, bool]],
+			order: str,
+			) -> List[Tuple[Documenter, bool]]:
+		"""
+		Sort the TypedDict's members.
+
+		:param documenters:
+		:param order:
+		"""
+
+		# The documenters for the keys, in the desired order
+		documenters = super().sort_members(documenters, order)
+
+		# Mapping of key names to docstrings (as list of strings)
+		docstrings = {
+				k[1]: v
+				for k, v in ModuleAnalyzer.for_module(self.object.__module__).find_attr_docs().items()
+				}
+
+		required_keys = []
+		optional_keys = []
+		types = get_type_hints(self.object)
+
+		for d in documenters:
+			name = d[0].name.split('.')[-1]
+			if name in self.object.__required_keys__:
+				required_keys.append(name)
+			elif name in self.object.__optional_keys__:
+				optional_keys.append(name)
+			# else: warn user. This shouldn't ever happen, though.
+
+		sourcename = self.get_sourcename()
+
+		if required_keys:
+			self.add_line('', sourcename)
+			self.add_line(":Required Keys:", sourcename)
+			self.document_keys(required_keys, types, docstrings)
+			self.add_line('', sourcename)
+
+		if optional_keys:
+			self.add_line('', sourcename)
+			self.add_line(":Optional Keys:", sourcename)
+			self.document_keys(optional_keys, types, docstrings)
+			self.add_line('', sourcename)
+
+		return []
+
+	def document_keys(
+			self,
+			keys: List[str],
+			types: Dict[str, Type],
+			docstrings: Dict[str, List[str]],
+			) -> None:
+		"""
+		Document keys in a :class:`typing.TypedDict`.
+
+		:param keys: List of key names to document.
+		:param types: Mapping of key names to types.
+		:param docstrings: Mapping of key names to docstrings.
+		"""
+
+		content = StringList()
+
+		for key in keys:
+			if key in types:
+				key_type = f"({format_annotation(types[key])}) "
+			else:
+				key_type = ''
+
+			if key in docstrings:
+				content.append(f"    * **{key}** {key_type}-- {' '.join(docstrings.get(key, ''))}")
+			else:
+				content.append(f"    * **{key}** {key_type}")
+
+		for line in content:
+			self.add_line(line, self.get_sourcename())
+
+	def filter_members(
+			self,
+			members: ObjectMembers,
+			want_all: bool,
+			) -> List[Tuple[str, Any, bool]]:
+		"""
+		Filter the given member list.
+
+		:param members:
+		:param want_all:
+		"""
+
+		ret = []
+
+		# process members and determine which to skip
+		for m in members:
+			if sphinx.version_info >= (7, 0):
+				membername, member = m.__name__, m.object  # type: ignore[union-attr]
+			else:
+				membername, member = m
+			# if isattr is True, the member is documented as an attribute
+
+			if safe_getattr(member, "__sphinx_mock__", False):
+				# mocked module or object
+				keep = False
+			elif membername.startswith('_'):
+				keep = False
+			else:
+				keep = True
+
+			# give the user a chance to decide whether this member
+			# should be skipped
+			if self.env.app:
+				# let extensions preprocess docstrings
+				try:  # pylint: disable=R8203
+					skip_user = self.env.app.emit_firstresult(
+							"autodoc-skip-member",
+							self.objtype,
+							membername,
+							member,
+							not keep,
+							self.options,
+							)
+
+					if skip_user is not None:
+						keep = not skip_user
+
+				except Exception as exc:
+					filter_members_warning(member, exc)
+					keep = False
+
+			if keep:
+				ret.append((membername, member, member is INSTANCEATTR))
+
+		return ret
+
+
+class _PyTypedDictlike(PyClasslike):
+	"""
+	Description of a typeddict-like object.
+	"""
+
+	def get_index_text(self, modname: str, name_cls: Tuple[str, str]) -> str:
+		if self.objtype == "typeddict":
+			return _("%s (typeddict in %s)") % (name_cls[0], modname)
+		else:
+			return super().get_index_text(modname, name_cls)
+
+
+@metadata_add_version
+def setup(app: Sphinx) -> SphinxExtMetadata:
+	"""
+	Setup :mod:`sphinx_toolbox.more_autodoc.autotypeddict`.
+
+	:param app: The Sphinx application.
+	"""
+
+	app.registry.domains["py"].object_types["typeddict"] = ObjType("typeddict", "typeddict", "class", "obj")
+	app.add_directive_to_domain("py", "typeddict", _PyTypedDictlike)
+	app.add_role_to_domain("py", "typeddict", PyXRefRole())
+	app.connect("object-description-transform", add_fallback_css_class({"typeddict": "class"}))
+
+	allow_subclass_add(app, TypedDictDocumenter)
+
+	return {"parallel_read_safe": True}
