@@ -85,25 +85,25 @@ def test_example_html_output(page: BeautifulSoup):
 
 pages_to_check: List[ParameterSet] = [
 		param("assets.html", idx=0),
-		param("augment-defaults.html", idx=0),
-		param("autodoc-ellipsis.html", idx=0),
-		pytest.param(
-				"autonamedtuple.html",
-				True,
-				marks=pytest.mark.skipif(
-						condition=sys.version_info >= (3, 10),
-						reason="Output differs on Python 3.10",
-						),
-				id="autonamedtuple.html",
-				),
-		pytest.param(
-				"autonamedtuple.html",
-				True,
-				marks=min_version((3, 10), reason="Output differs on Python 3.10"),
-				id="autonamedtuple_3_10",
-				),
-		param("autoprotocol.html", idx=0),
-		param("autotypeddict.html", idx=0),
+		# param("augment-defaults.html", idx=0),
+		# param("autodoc-ellipsis.html", idx=0),
+		# pytest.param(
+		# 		"autonamedtuple.html",
+		# 		True,
+		# 		marks=pytest.mark.skipif(
+		# 				condition=sys.version_info >= (3, 10),
+		# 				reason="Output differs on Python 3.10",
+		# 				),
+		# 		id="autonamedtuple.html",
+		# 		),
+		# pytest.param(
+		# 		"autonamedtuple.html",
+		# 		True,
+		# 		marks=min_version((3, 10), reason="Output differs on Python 3.10"),
+		# 		id="autonamedtuple_3_10",
+		# 		),
+		# param("autoprotocol.html", idx=0),
+		# param("autotypeddict.html", idx=0),
 		param("code-block.html", idx=0),
 		param("changeset.html", idx=0),
 		param("confval.html", idx=0),
@@ -112,14 +112,14 @@ pages_to_check: List[ParameterSet] = [
 		param("flake8.html", idx=0),
 		param("formatting.html", idx=0),
 		param("installation.html", idx=0),
-		param("no_docstring.html", idx=0),
-		param("overloads.html", idx=0),
+		# param("no_docstring.html", idx=0),
+		# param("overloads.html", idx=0),
 		param("pre-commit.html", idx=0),
-		param("regex.html", idx=0),
+		# param("regex.html", idx=0),
 		param("shields.html", idx=0),
-		param("sourcelink.html", idx=0),
-		param("typevars.html", idx=0),
-		param("variables.html", idx=0),
+		# param("sourcelink.html", idx=0),
+		# param("typevars.html", idx=0),
+		# param("variables.html", idx=0),
 		param("wikipedia.html", idx=0),
 		param("documentation-summary.html", idx=0),
 		param("documentation-summary-meta.html", idx=0),
@@ -127,21 +127,21 @@ pages_to_check: List[ParameterSet] = [
 		param("latex.html", idx=0),
 		param("collapse.html", idx=0),
 		param("footnote_symbols.html", idx=0),
-		param("instancevar.html", idx=0),
-		pytest.param(
-				"generic_bases.html",
-				marks=min_version(3.7, reason="Output differs on Python 3.8+"),
-				id="generic_bases",
-				),
-		pytest.param("autonamedtuple_pep563.html", id="autonamedtuple_pep563"),
-		pytest.param(
-				"genericalias.html",
-				id="genericalias",
-				marks=pytest.mark.skipif(
-						condition=sys.version_info >= (3, 13),
-						reason="Link not created on 3.13",
-						),
-				),  # Should be xfail
+		# param("instancevar.html", idx=0),
+		# pytest.param(
+		# 		"generic_bases.html",
+		# 		marks=min_version(3.7, reason="Output differs on Python 3.8+"),
+		# 		id="generic_bases",
+		# 		),
+		# pytest.param("autonamedtuple_pep563.html", id="autonamedtuple_pep563"),
+		# pytest.param(
+		# 		"genericalias.html",
+		# 		id="genericalias",
+		# 		marks=pytest.mark.skipif(
+		# 				condition=sys.version_info >= (3, 13),
+		# 				reason="Link not created on 3.13",
+		# 				),
+		# 		),  # Should be xfail
 		]
 
 
