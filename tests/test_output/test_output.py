@@ -127,7 +127,7 @@ pages_to_check: List[ParameterSet] = [
 		param("latex.html", idx=0),
 		param("collapse.html", idx=0),
 		param("footnote_symbols.html", idx=0),
-		# param("instancevar.html", idx=0),
+		param("instancevar.html", idx=0),
 		# pytest.param(
 		# 		"generic_bases.html",
 		# 		marks=min_version(3.7, reason="Output differs on Python 3.8+"),
